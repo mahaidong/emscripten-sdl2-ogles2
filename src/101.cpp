@@ -1,86 +1,111 @@
+#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_opengles2.h>
+#endif
 
-bool quit = false;
+#include <SDL.h>
+#include <SDL_opengles2.h>
 
-void mainLoop(void* mainLoopArg) 
-{   
+// Window
+SDL_Window *win;
 
-    while (!quit) {
+GLuint initShader()
+{
 
-        SDL_Event& event = *((SDL_Event*)mainLoopArg);
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                quit = true;
-            }
-        }
+    const GLchar *vertexSource =
+        "attribute vec3 position;                      \n"
+        "void main()                                   \n"
+        "{                                             \n"
+        "    gl_Position = vec4(position.xyz, 1.0);    \n"
+        "}                                             \n";
 
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        SDL_GL_SwapWindow(window);
-    }
+    // Fragment/pixel shader
+    const GLchar *fragmentSource =
+        "void main()                                  \n"
+        "{                                            \n"
+        "    gl_FragColor = vec4 ( 1.0,1.0,1.0, 1.0 );\n"
+        "}                                            \n";
 
+    // Create and compile vertex shader
+
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexSource, NULL);
+    glCompileShader(vertexShader);
+
+    // Create and compile fragment shader
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
+    glCompileShader(fragmentShader);
+
+    // Link vertex and fragment shader into shader program and use it
+    GLuint shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+    glUseProgram(shaderProgram);
+
+    return shaderProgram;
 }
 
-int main(int argc, char *argv[]) {
-    SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window *window = SDL_CreateWindow("Hello Triangle", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_OPENGL);
-    SDL_GLContext context = SDL_GL_CreateContext(window);
-
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    GLfloat vertices[] = {
-        0.0f, 0.5f,
-        -0.5f, -0.5f,
-        0.5f, -0.5f
-    };
-
+void initGeometry(GLuint shaderProgram)
+{
+    // Create vertex buffer object and copy vertex data into it
     GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    GLfloat vertices[] =
+        {
+            0.0f, 0.5f, 0.0f,
+            -0.5f, -0.5f, 0.0f,
+            0.5f, -0.5f, 0.0f};
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    GLuint program = glCreateProgram();
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-
-    const char *vertexShaderSource =
-        "attribute vec2 position;\n"
-        "void main() {\n"
-        "   gl_Position = vec4(position.x, position.y, 0.0, 1.0);\n"
-        "}\n";
-
-    const char *fragmentShaderSource =
-        "void main() {\n"
-        "   gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n"
-        "}\n";
-
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-
-    glAttachShader(program, vertexShader);
-    glAttachShader(program, fragmentShader);
-    glBindAttribLocation(program, 0, "position");
-    glLinkProgram(program);
-
-    GLint posAttrib = glGetAttribLocation(program, "position");
+    // Specify the layout of the shader vertex data (positions only, 3 floats)
+    GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
     glEnableVertexAttribArray(posAttrib);
-    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE,
-                          2 * sizeof(GLfloat), 0);
+    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
+}
 
+void redraw(SDL_Event &eventHandler)
+{
+    // Clear screen
+    glClear(GL_COLOR_BUFFER_BIT);
 
+    // Draw the vertex buffer
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 
+    SDL_GL_SwapWindow(win);
+}
+
+void mainLoop(void *mainLoopArg)
+{
+    SDL_Event &eventHandler = *((SDL_Event *)mainLoopArg);
+    SDL_PollEvent(&eventHandler);
+    redraw(eventHandler);
+}
+
+int main(int argc, char **argv)
+{
+
+    SDL_Init(SDL_INIT_VIDEO);
+    win = SDL_CreateWindow("101",
+                         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                         640, 480,
+                         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
+    SDL_GL_CreateContext(win);
+
+    // Initialize shader and geometry
+    GLuint shaderProgram = initShader();
+    initGeometry(shaderProgram);
+
+    // Start the main loop
+    SDL_Event eventHandler;
+    void *mainLoopArg = &eventHandler;
+#ifdef __EMSCRIPTEN__
     int fps = 0; // Use browser's requestAnimationFrame
-    SDL_Event  event;
-    emscripten_set_main_loop_arg(mainLoop, event, fps, !quit);
-
-    SDL_GL_DeleteContext(context);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-
-    return EXIT_SUCCESS;
+    emscripten_set_main_loop_arg(mainLoop, mainLoopArg, fps, true);
+#else
+    while (true)
+        mainLoop(mainLoopArg);
+#endif
+    return 0;
 }

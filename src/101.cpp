@@ -69,10 +69,8 @@ void redraw(SDL_Event &eventHandler)
 {
     // Clear screen
     glClear(GL_COLOR_BUFFER_BIT);
-
     // Draw the vertex buffer
     glDrawArrays(GL_TRIANGLES, 0, 3);
-
     SDL_GL_SwapWindow(win);
 }
 

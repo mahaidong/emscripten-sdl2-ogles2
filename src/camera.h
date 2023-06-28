@@ -7,6 +7,7 @@ struct Vec2 { GLfloat x, y; };
 class Camera
 {
 public:
+
     Camera();
     bool updated();
     bool windowResized();
@@ -35,7 +36,7 @@ public:
     void normWindowToWorldCoords (float normWinX, float normWinY, float& worldX, float& worldY);
 
 private:
-    float clamp (float val, float lo, float hi);
+    float clamp (float val, float low, float high);
 
     bool mCameraUpdated;
     bool mWindowResized;

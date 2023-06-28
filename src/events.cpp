@@ -22,6 +22,7 @@ void EventHandler::initWindow(const char* title)
                          SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                          mCamera.windowSize().width, mCamera.windowSize().height, 
                          SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE| SDL_WINDOW_SHOWN);
+
     mWindowID = SDL_GetWindowID(mpWindow);
 
     // Create OpenGLES 2 context on SDL window

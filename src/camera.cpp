@@ -32,9 +32,9 @@ void Camera::setWindowSize(int width, int height)
 }
 
 // Clamp val between lo and hi
-float Camera::clamp (float val, float lo, float hi) 
+float Camera::clamp (float val, float low, float high) 
 { 
-    return std::max(lo, std::min(val, hi)); 
+    return std::max(low, std::min(val, high)); 
 }
 
 // Convert from normalized window coords (x,y) in ([0.0, 1.0], [1.0, 0.0]) to device coords ([-1.0, 1.0], [-1.0,1.0])

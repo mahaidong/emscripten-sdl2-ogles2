@@ -6,6 +6,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengles2.h>
 
+bool quit = false;
+
 void mainLoop()
 {
     SDL_Event event;
@@ -71,12 +73,11 @@ int main(int argc, char *argv[])
     glEnableVertexAttribArray(posAttrib);
     glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE,
                           2 * sizeof(GLfloat), 0);
-
 #ifdef __EMSCRIPTEN__
     int fps = 0; // Use browser's requestAnimationFrame
-    emscripten_set_main_loop_arg(mainLoop, NULL, fps, true);
+    emscripten_set_main_loop_arg(mainLoop, NULL, fps, !quit);
 #else
-    while (true)
+    while (!quit)
         mainLoop();
 #endif
 
